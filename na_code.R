@@ -11,6 +11,27 @@
 #         All answers are numerical or can be converted by the functions described below
 # Output: a network analysis on this data set
 
+#### Information on dataset ####
+# Q16 = age
+# Q12 = gender: 1 = male, 2 = female, 3 = non-binary, 4 = prefer not to say
+# Q18 = education
+# Q19 = which field
+# Q11 = live in NL?
+# Q13 = country of origin
+# Q38 = country outside of europe
+# Q37_1 = hometown: 0 = rural, 10 = urban
+# Q37_4 = current residence: 0 = rural, 10 = urban
+# Q21 = politics: 1 = extreme left, 7 = extreme right
+# Q24 = religion
+# Q39 = risk
+# Q40 = had covid
+# Q36 = vaccinated
+# Q32 = personality: 11 = strongly disagree, 15 = strongly agree, needs to be split and counterbalanced
+# Q33 = choose 3 -> "3" was second option, so only keep 2
+# Q1 = believe in science 1 = strongly disagree, 6 = strongly agree, no modification needed, just sum all 7 values
+# Q35 = believe in vaccine 1 = strongly disagree, 6 = strongly agree, need to be counterbalanced
+
+
 #### Run packages and functions ####
 
 # Run each time when opening R
@@ -149,31 +170,13 @@ qgraph(COVID_network$graph, details = T, layout = "spring", theme = "colorblind"
 dev.copy(png, "Network_COVID.png", width = 700, height =500)
 dev.off()
 
-#### Bootstrap network ####
+#### Bootstrap edge weights ####
 
 # Estimate accuracy of the EBICglasso network
 boot_nonparametric <- bootnet(COVID_network, nBoots = 1000, nCores = 8)
 
 # Plot bootstrapped CI
 plot(boot_nonparametric, order = "sample", labels = T)
-
-# Plot node strengths, betweenness and closeness of network
-centralityPlot(COVID_network, include = c("Strength", "Betweenness", "Closeness"), orderBy = "Strength",
-               labels = c("Age","Agreeableness", "Hometown", "Current Residence", "Neuroticism", "Openness", "Belief in Science","Trust in COVID-19 vaccine"))
-
-# Run case drop bootstrap to test stability of network characteristics
-boot_casedrop <- bootnet(COVID_network,
-                         nBoots = 1000,
-                         nCores = 8,
-                         type = "case",
-                         statistics = c("strength", "betweenness", "closeness"),
-                         )
-
-# Plot stability of node strength, betweenness and closeness
-plot(boot_casedrop, statistics = c("strength", "betweenness", "closeness"))
-
-# Calculate CS-coefficient
-corStability(boot_casedrop)
 
 #### Descriptive statistics ####
 
