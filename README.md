@@ -1,5 +1,3 @@
-### na_2021
-
 ## Network Analysis project
 Welcome to the repository of our final project for the Network Analysis course at the University of Amsterdam.
 
