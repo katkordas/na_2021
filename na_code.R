@@ -5,9 +5,9 @@
 #   Margot Steijger     11680814
 #   Kat Kolodziejczyk   13277456
 #   Anne Marijn Bruijn  11637234
-#   Ilke de Lange 	    12118311
+#   Ilke de Lange 	12118311
 # 
-# Input:  an Excel file with the raw data from Qualtrics of which the first 18 columns include non-relevant data.
+# Input:  an Excel file with the raw data from Qualtrics with identifiable information removed
 #         All answers are numerical or can be converted by the functions described below
 # Output: a network analysis on this data set
 
@@ -26,10 +26,10 @@
 # Q39 = risk
 # Q40 = had covid
 # Q36 = vaccinated
-# Q32 = personality: 11 = strongly disagree, 15 = strongly agree, needs to be split and counterbalanced
+# Q32 = personality: 1 = strongly disagree, 5 = strongly agree, some items need to be reversed
 # Q33 = choose 3 -> "3" was second option, so only keep 2
-# Q1 = believe in science 1 = strongly disagree, 6 = strongly agree, no modification needed, just sum all 7 values
-# Q35 = believe in vaccine 1 = strongly disagree, 6 = strongly agree, need to be counterbalanced
+# Q1 = belief in science 1 = strongly disagree, 6 = strongly agree, no modification needed, just sum all 7 values
+# Q35 = belief in vaccine 1 = strongly disagree, 6 = strongly agree, some items need to be reversed
 
 
 #### Run packages and functions ####
@@ -94,20 +94,20 @@ Convert_to_REV_6num <- function(Input){
 
 descriptive <- function(array_input){
   # Input is an array of which descriptive statistics need to be performed.
-  #   Array should only contain numerical values!
+  # Array should only contain numerical values!
   # Output is an array including the mean, standard deviation, median and interquartile range
   Output = c(mean(array_input, na.rm=T), sd(array_input, na.rm=T), median(array_input, na.rm=T), IQR(array_input, na.rm=T))
   return (Output)
 }
 
 ##### Read and manipulate dataframe ####
-# Download (export) CSV file from Qualtrics with numeric values NOT choice text
+# Load dataset
 raw_data <- read_excel(file.choose())
 
 # Select all useable participants & questions
 raw_data_clean<-subset(raw_data, raw_data$Q33=="3" & raw_data$Finished=="True" & raw_data$`Informed consent`=="Yes, I hereby agree to participate in the study") # Based on our inclusion criteria
 n = nrow(raw_data_clean)
-COVID_data <- raw_data_clean[,-c(1:18)]  # Remove the first 18 columns since this data is irrelevant for the network
+COVID_data <- raw_data_clean[,-c(1:2)]  # Remove the first 2 columns since this data is irrelevant for the network
 COVID_data <- as.data.frame(COVID_data)
 COVID_data$Q16 <- as.numeric(COVID_data$Q16)
 COVID_data$Q37_1 <- as.numeric(COVID_data$Q37_1)
@@ -148,7 +148,7 @@ COVID_data$Conscientiousness = COVID_data$Q32_3 + COVID_data$Q32_8
 COVID_data$Neuroticism = COVID_data$Q32_4 + COVID_data$Q32_9
 
 # Calculate total scores per trust/belief questionnaire
-# Create variable for believe in science 
+# Create variable for belief in science 
 COVID_data$Belief_in_science = COVID_data$Q1_1 + COVID_data$Q1_2 + COVID_data$Q1_3 + COVID_data$Q1_4 + COVID_data$Q1_5 + COVID_data$Q1_6 + COVID_data$Q1_7
 
 # Create variable for trust in COVID vaccine and vaccine in general
@@ -157,17 +157,27 @@ COVID_data$Trust_covvaccine = COVID_data$Q35_1 + COVID_data$Q35_2 + COVID_data$Q
 #### Estimate network ####
 
 # Select variables for network
-subset_data <- select(COVID_data,Q16,Agreeableness,Q37_1, Q37_4, Neuroticism, Openness, Belief_in_science, Trust_covvaccine)
+subset_data <- select(COVID_data,Q16,Q37_1, Q37_4, Agreeableness, Neuroticism, Openness, Belief_in_science, Trust_covvaccine)
 
 # Estimate and plot Network
 COVID_network <- estimateNetwork(subset_data,default = "EBICglasso", corMethod = "spearman")
-pdf("COVID_network_version2.pdf", width = 14, height = 10)
-par(bg=NA)
 qgraph(COVID_network$graph, details = T, layout = "spring", theme = "colorblind", color = c("#D3B199", "#D86128", "#495B64", "#ECC769"), labels = T,
-       nodeNames = c("Age", "Hometown", "Current Residence", "Agreeableness", "Neuroticism", "Openness", "Belief in Science","COVID-19 vaccin trust"), details = T,
+       nodeNames = c("Age", "Hometown", "Current Residence", "Agreeableness", "Neuroticism", "Openness", "Belief in Science","COVID-19 vaccine trust"), details = T,
        groups = c("Demographics", "Living", "Living", "Personality", "Personality", "Personality", "Science: Belief/trust", "Science: Belief/trust"),  legend = T,
        shape = "circle", label.cex = 1.5)
-dev.copy(png, "Network_COVID.png", width = 700, height =500)
+
+# Save as pdf
+pdf("COVID_network.pdf", width = 14, height = 10)
+qgraph(COVID_network$graph, details = T, layout = "spring", theme = "colorblind", color = c("#D3B199", "#D86128", "#495B64", "#ECC769"), labels = T,
+       nodeNames = c("Age", "Hometown", "Current Residence", "Agreeableness", "Neuroticism", "Openness", "Belief in Science","COVID-19 vaccine trust"), details = T,
+       groups = c("Demographics", "Living", "Living", "Personality", "Personality", "Personality", "Science: Belief/trust", "Science: Belief/trust"),  legend = T,
+       shape = "circle", label.cex = 1.5)
+dev.off()
+
+# Save as transparent png (without legend)
+plot(COVID_network, details = T, layout = "spring", theme = "colorblind", color = c("#D3B199", "#D86128", "#D86128", "#495B64", "#495B64", "#495B64", "#ECC769", "#ECC769"), labels = T, details = T,
+     shape = "circle", label.cex = 1.5, bg = 'transparent') 
+dev.copy(png, "Network_COVID_transparent.png", width = 700, height =500, bg = 'transparent')
 dev.off()
 
 #### Bootstrap edge weights ####
